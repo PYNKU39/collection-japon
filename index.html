@@ -1,0 +1,630 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Collection Japon</title>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="CollectJP"/>
+<link rel="manifest" id="pwa-manifest"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- ====== LOCK SCREEN ====== -->
+<div id="lock-screen">
+  <h1 style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:8px" class="txt-grad">CollectJP 🔒</h1>
+  <p style="font-size:13px;color:var(--txt2);margin-bottom:28px;text-align:center;max-width:300px">Votre collection est chiffrée. Entrez votre mot de passe pour la déverrouiller ou l'initialiser.</p>
+  <input type="password" id="app-pwd" placeholder="Mot de passe secret" onkeydown="if(event.key==='Enter')unlockApp()"/>
+  <div id="pwd-error">Mot de passe incorrect ✗</div>
+  <button class="btn-primary" style="width:100%;max-width:320px" onclick="unlockApp()">Déverrouiller</button>
+  <div id="sync-status" style="font-size:12px;color:var(--txt3);margin-top:20px"></div>
+</div>
+
+<div id="app">
+  <div id="page-content">
+
+    <!-- ====== PAGE: COLLECTION ====== -->
+    <div id="page-home">
+      <div class="page-header">
+        <p style="font-size:12px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Ma Collection</p>
+        <h1 style="font-size:26px;font-weight:800;letter-spacing:-.5px" class="txt-grad">Japon 🎌</h1>
+      </div>
+      <div class="rate-bar">
+        <div class="rate-left">
+          <div class="rate-icon">💱</div>
+          <div><div id="rate-display" style="font-size:14px;font-weight:600">1 € = … ¥</div><div id="rate-source" style="font-size:11px;color:var(--txt3);margin-top:1px">Chargement…</div></div>
+        </div>
+        <button onclick="loadRate()" id="rate-btn" style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+      <div class="stats-row" id="stats-grid"></div>
+      <div id="profit-banner" class="hidden"></div>
+
+      <!-- Contrôles d'affichage collection -->
+      <div class="view-toggle">
+        <span class="view-toggle-label">Affichage :</span>
+        <button class="view-btn active" id="vbtn-cards" onclick="setViewMode('cards')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Cartes
+        </button>
+        <button class="view-btn" id="vbtn-list" onclick="setViewMode('list')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Liste
+        </button>
+        <button class="view-btn" id="vbtn-hidden" onclick="setViewMode('hidden')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          Masqué
+        </button>
+      </div>
+
+      <!-- Recherche + Tri -->
+      <div class="search-wrap" id="search-wrap">
+        <svg class="search-icon" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="search-input" type="search" placeholder="Rechercher un objet…" oninput="renderItems()">
+      </div>
+      <div class="sort-row" id="sort-row">
+        <select class="sort-sel" id="sort-sel" onchange="renderItems()">
+          <option value="recent">➕ Plus récents</option>
+          <option value="name">🔤 Nom A→Z</option>
+          <option value="cost_desc">💸 Coût ↓</option>
+          <option value="cost_asc">💸 Coût ↑</option>
+          <option value="profit_desc">📈 Bénéfice ↓</option>
+        </select>
+        <span class="items-count" id="items-count"></span>
+      </div>
+
+      <div id="items-grid" class="item-wrap"></div>
+    </div>
+
+    <!-- ====== PAGE: TAXES ====== -->
+    <div id="page-taxes" class="hidden">
+      <div class="page-header">
+        <p style="font-size:12px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Douane & Simulation</p>
+        <h1 style="font-size:26px;font-weight:800;letter-spacing:-.5px">Taxes & TVA 👮</h1>
+      </div>
+
+      <div style="padding:0 16px;margin-bottom:16px">
+        <div class="card card-pad" style="text-align:center;padding:24px 16px">
+          <div style="font-size:12px;color:var(--txt2);text-transform:uppercase;font-weight:600;letter-spacing:1px;margin-bottom:8px">Total Frais & Taxes payés (collection)</div>
+          <div id="total-taxes-paid" style="font-size:32px;font-weight:800;color:var(--c1)">0.00 €</div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px;margin-bottom:16px">
+        <div class="field-lbl">Simulateur d'Achat (Import Japon)</div>
+        <div class="card">
+          <div class="field-row">
+            <label>Prix objet (¥)</label>
+            <input type="number" id="sim-jpy" placeholder="0" oninput="runSim()" style="width:100px;min-width:0">
+          </div>
+          <div class="field-row">
+            <label>Frais de port (€)</label>
+            <input type="number" id="sim-fees" value="15" oninput="runSim()" style="width:100px;min-width:0">
+          </div>
+          <div class="field-row">
+            <label>Frais douane (€)</label>
+            <input type="number" id="sim-customs" value="0" oninput="runSim()" style="width:100px;min-width:0">
+          </div>
+          <div class="field-row" style="height:auto;padding:10px 14px;flex-direction:column;align-items:flex-start;gap:6px">
+            <span style="font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em">Mode de calcul TVA</span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <label style="width:auto;display:flex;align-items:center;gap:6px;color:var(--txt);font-size:13px"><input type="radio" name="tva-mode" value="import" checked onchange="runSim()">Import (TVA sur total+port)</label>
+              <label style="width:auto;display:flex;align-items:center;gap:6px;color:var(--txt);font-size:13px"><input type="radio" name="tva-mode" value="simple" onchange="runSim()">Simple (TVA sur valeur seule)</label>
+              <label style="width:auto;display:flex;align-items:center;gap:6px;color:var(--txt);font-size:13px"><input type="radio" name="tva-mode" value="none" onchange="runSim()">Sans TVA (&lt;150 €)</label>
+            </div>
+          </div>
+          <div style="padding:14px 16px;background:rgba(0,0,0,0.2);border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);margin-bottom:7px;gap:8px">
+              <span>Conversion (taux actuel)</span><span id="sim-conv" style="flex-shrink:0;font-weight:600;color:var(--txt)">0,00 €</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);margin-bottom:7px;gap:8px">
+              <span>Base taxable</span><span id="sim-base" style="flex-shrink:0;font-weight:600;color:var(--txt)">0,00 €</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);margin-bottom:7px;gap:8px">
+              <span id="sim-tva-lbl">TVA (20%)</span><span id="sim-tva" style="flex-shrink:0;font-weight:600;color:var(--txt)">0,00 €</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);margin-bottom:12px;gap:8px">
+              <span>Frais de douane</span><span id="sim-customs-disp" style="flex-shrink:0;font-weight:600;color:var(--txt)">0,00 €</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:12px;gap:8px">
+              <span style="font-size:14px;font-weight:600;flex-shrink:0">Prix de revient final</span>
+              <span id="sim-total" class="sim-total-val">0,00 €</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:0 16px 8px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+          <div style="font-size:11px;color:var(--txt3);line-height:1.6">
+            ℹ️ <strong style="color:var(--txt2)">Règles douanières UE :</strong><br>
+            • &lt; 150 € valeur : exonéré de droits, TVA 20% applicable depuis 2021<br>
+            • &gt; 150 € : droits de douane (variable) + TVA 20% sur (valeur + frais de port)<br>
+            • Mode <em>Import</em> calcule la TVA sur la base valeur + port (règle officielle)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== PAGE: SETTINGS ====== -->
+    <div id="page-settings" class="hidden">
+      <div class="page-header">
+        <p style="font-size:12px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Personnalisation</p>
+        <h1 style="font-size:26px;font-weight:800;letter-spacing:-.5px">Paramètres</h1>
+      </div>
+
+      <!-- Settings Tabs -->
+      <div class="stab-bar" id="stab-bar">
+        <button class="stab-btn active" data-tab="apparence" onclick="switchSettingsTab('apparence')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Apparence
+        </button>
+        <button class="stab-btn" data-tab="affichage" onclick="switchSettingsTab('affichage')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Affichage
+        </button>
+        <button class="stab-btn" data-tab="donnees" onclick="switchSettingsTab('donnees')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Données
+        </button>
+        <button class="stab-btn" data-tab="cloud" onclick="switchSettingsTab('cloud')">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          Cloud
+        </button>
+      </div>
+
+      <!-- TAB: APPARENCE -->
+      <div class="stab-panel active" id="stab-apparence">
+
+      <!-- Taille d'interface -->
+      <div class="settings-section">
+        <div class="s-title">Taille de l'interface</div>
+        <div class="settings-group">
+          <div style="padding:10px 16px 4px">
+            <div style="font-size:12px;color:var(--txt2);margin-bottom:8px">Ajustez la taille globale de l'interface — de compacte (1) à grande (5)</div>
+          </div>
+          <div class="size-level-row" id="size-level-row">
+            <button class="size-btn" data-level="1" onclick="setUiSize(1)">① <span style="font-size:10px">Micro</span></button>
+            <button class="size-btn" data-level="2" onclick="setUiSize(2)">② <span style="font-size:10px">Compact</span></button>
+            <button class="size-btn active" data-level="3" onclick="setUiSize(3)">③ <span style="font-size:10px">Normal</span></button>
+            <button class="size-btn" data-level="4" onclick="setUiSize(4)">④ <span style="font-size:10px">Grand</span></button>
+            <button class="size-btn" data-level="5" onclick="setUiSize(5)">⑤ <span style="font-size:10px">XL</span></button>
+          </div>
+          <div style="padding:8px 16px 14px">
+            <div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden">
+              <div id="size-bar" style="height:100%;width:60%;background:linear-gradient(90deg,var(--c1),var(--c2));border-radius:3px;transition:width .3s"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Couleurs -->
+      <div class="settings-section">
+        <div class="s-title">Couleurs de l'interface</div>
+        <div class="settings-group">
+          <div class="setting-row">
+            <div><div class="setting-lbl">Couleur principale</div><div class="setting-sub">Boutons, accents, dégradés</div></div>
+            <div class="color-picker-wrap">
+              <span id="c1-hex" style="font-size:11px;color:var(--txt3);font-family:monospace">#f43f5e</span>
+              <label class="color-swatch" style="background:var(--c1)"><input type="color" id="pick-c1" value="#f43f5e" oninput="applyColor('c1',this.value)"></label>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-lbl">Couleur secondaire</div><div class="setting-sub">Dégradés et effets</div></div>
+            <div class="color-picker-wrap">
+              <span id="c2-hex" style="font-size:11px;color:var(--txt3);font-family:monospace">#ec4899</span>
+              <label class="color-swatch" style="background:var(--c2)"><input type="color" id="pick-c2" value="#ec4899" oninput="applyColor('c2',this.value)"></label>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-lbl">Couleur de fond</div><div class="setting-sub">Arrière-plan de l'application</div></div>
+            <div class="color-picker-wrap">
+              <span id="bg-hex" style="font-size:11px;color:var(--txt3);font-family:monospace">#0a0a0f</span>
+              <label class="color-swatch" style="background:var(--bg)"><input type="color" id="pick-bg" value="#0a0a0f" oninput="applyBgColor(this.value)"></label>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-lbl">Couleur bénéfice</div>
+              <div class="setting-sub">Bandeau rentable (fond plein)</div>
+            </div>
+            <div class="color-picker-wrap">
+              <span id="pos-hex" style="font-size:11px;color:var(--txt3);font-family:monospace">#10b981</span>
+              <label class="color-swatch" style="background:#10b981"><input type="color" id="pick-pos" value="#10b981" oninput="applyProfitColor('pos',this.value)"></label>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-lbl">Couleur déficit</div>
+              <div class="setting-sub">Bandeau non rentable (fond plein)</div>
+            </div>
+            <div class="color-picker-wrap">
+              <span id="neg-hex" style="font-size:11px;color:var(--txt3);font-family:monospace">#ef4444</span>
+              <label class="color-swatch" style="background:#ef4444"><input type="color" id="pick-neg" value="#ef4444" oninput="applyProfitColor('neg',this.value)"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thème OLED -->
+      <div class="settings-section">
+        <div class="s-title">Thème OLED</div>
+        <div class="settings-group">
+          <div class="setting-row" style="cursor:pointer" onclick="toggleOled()">
+            <div>
+              <div class="setting-lbl">Mode OLED Ultra-sombre</div>
+              <div class="setting-sub">Fond pur noir — pixels éteints sur OLED</div>
+            </div>
+            <div id="oled-toggle" class="toggle-switch">
+              <div id="oled-knob" class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="settings-section">
+        <div class="s-title">Thèmes prédéfinis (accents)</div>
+        <div class="settings-group">
+          <div class="preset-colors" id="preset-grid"></div>
+        </div>
+      </div>
+
+      <!-- Aperçu -->
+      <div class="settings-section">
+        <div class="s-title">Aperçu du thème</div>
+        <div class="settings-group" style="padding:16px">
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:1;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff">Bouton</div>
+            <div style="flex:1;height:44px;border-radius:10px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--txt2)">Secondaire</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span id="prev-badge" style="display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;background:var(--c1-08);color:var(--c1)">Badge</span>
+            <span class="preview-chip pos">+Valeur</span>
+            <span class="preview-chip neg">-Valeur</span>
+          </div>
+          <!-- Mini aperçu bannière rentabilité -->
+          <div style="margin-top:12px;border-radius:12px;overflow:hidden">
+            <div style="background:var(--profit-pos);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#fff;letter-spacing:.06em">📈 Collection rentable</div>
+                <div style="font-size:10px;color:rgba(255,255,255,.85);margin-top:2px">+12.5% vs investissement</div>
+              </div>
+              <div style="font-size:17px;font-weight:800;color:#fff">+250 €</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div><!-- end stab-apparence -->
+
+      <!-- TAB: AFFICHAGE -->
+      <div class="stab-panel" id="stab-affichage">
+
+        <!-- Affichage par défaut -->
+        <div class="settings-section">
+          <div class="s-title">Vue par défaut</div>
+          <div class="settings-group">
+            <div class="setting-row">
+              <div><div class="setting-lbl">Mode d'affichage</div><div class="setting-sub">Vue au démarrage de l'app</div></div>
+              <select id="set-default-view" onchange="saveDisplaySettings()" style="background:none;border:none;color:var(--txt2);font-size:13px;outline:none;cursor:pointer;font-family:inherit">
+                <option value="cards">Cartes</option>
+                <option value="list">Liste</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Options collection -->
+        <div class="settings-section">
+          <div class="s-title">Options de la collection</div>
+          <div class="settings-group">
+            <div class="setting-row" style="cursor:pointer" onclick="toggleSetting('showSearch')">
+              <div><div class="setting-lbl">Barre de recherche</div><div class="setting-sub">Filtrer les objets par nom</div></div>
+              <div id="tog-showSearch" class="toggle-switch"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="toggleSetting('showSort')">
+              <div><div class="setting-lbl">Options de tri</div><div class="setting-sub">Trier par nom, coût, bénéfice…</div></div>
+              <div id="tog-showSort" class="toggle-switch"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="toggleSetting('showProfit')">
+              <div><div class="setting-lbl">Bandeau rentabilité</div><div class="setting-sub">Afficher le résumé bénéfice/perte</div></div>
+              <div id="tog-showProfit" class="toggle-switch"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="toggleSetting('showNotes')">
+              <div><div class="setting-lbl">Notes sur les cards</div><div class="setting-sub">Afficher l'extrait de notes (mode cartes)</div></div>
+              <div id="tog-showNotes" class="toggle-switch"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="toggleSetting('showLinks')">
+              <div><div class="setting-lbl">Liens eBay / Yahoo JP</div><div class="setting-sub">Afficher les boutons de recherche</div></div>
+              <div id="tog-showLinks" class="toggle-switch"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monnaie affichée -->
+        <div class="settings-section">
+          <div class="s-title">Devise principale</div>
+          <div class="settings-group">
+            <div class="setting-row">
+              <div><div class="setting-lbl">Afficher les prix en</div><div class="setting-sub">Devise préférée dans les résumés</div></div>
+              <select id="set-currency-disp" onchange="saveDisplaySettings()" style="background:none;border:none;color:var(--txt2);font-size:13px;outline:none;cursor:pointer;font-family:inherit">
+                <option value="EUR">Euros €</option>
+                <option value="JPY">Yens ¥</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end stab-affichage -->
+
+      <!-- TAB: DONNÉES -->
+      <div class="stab-panel" id="stab-donnees">
+
+        <!-- Stats collection -->
+        <div class="settings-section">
+          <div class="s-title">Résumé de la collection</div>
+          <div class="settings-group">
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+              <div class="setting-lbl" id="data-summary-items">— objets</div>
+              <div class="setting-sub" id="data-summary-spent">Total investi : —</div>
+              <div class="setting-sub" id="data-summary-value">Valeur estimée : —</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export / Import -->
+        <div class="settings-section">
+          <div class="s-title">Export & Import</div>
+          <div class="settings-group">
+            <div class="setting-row" style="cursor:pointer" onclick="exportCollection()">
+              <div>
+                <div class="setting-lbl">Exporter la collection</div>
+                <div class="setting-sub">Télécharger un fichier JSON (sauvegarde)</div>
+              </div>
+              <svg width="18" height="18" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="document.getElementById('import-file').click()">
+              <div>
+                <div class="setting-lbl">Importer une collection</div>
+                <div class="setting-sub">Charger un fichier JSON exporté</div>
+              </div>
+              <svg width="18" height="18" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </div>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importCollection(this)">
+        </div>
+
+        <!-- Danger zone -->
+        <div class="settings-section">
+          <div class="s-title">Zone de danger</div>
+          <div class="settings-group">
+            <div class="setting-row" style="cursor:pointer" onclick="resetAllData()">
+              <div>
+                <div class="setting-lbl txt-danger">Supprimer toute la collection</div>
+                <div class="setting-sub">Efface tous les objets définitivement</div>
+              </div>
+              <svg class="txt-danger" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="resetSettings()">
+              <div>
+                <div class="setting-lbl">Réinitialiser les préférences</div>
+                <div class="setting-sub">Couleurs, taille, affichage remis à zéro</div>
+              </div>
+              <svg width="16" height="16" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.07"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info stockage -->
+        <div class="settings-section">
+          <div class="settings-group">
+            <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+              <div class="setting-lbl">Stockage persistant (IndexedDB)</div>
+              <div class="setting-sub" style="line-height:1.5">Données chiffrées AES-GCM — survivent au vidage du cache. Préférences UI en localStorage.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:0 16px;margin-bottom:24px">
+          <div style="text-align:center;font-size:11px;color:var(--txt3);line-height:1.6">
+            Collection Japon · PWA Chiffrée<br>WebCrypto AES-GCM · IndexedDB · v2
+          </div>
+        </div>
+
+      </div><!-- end stab-donnees -->
+
+      <!-- TAB: CLOUD -->
+      <div class="stab-panel" id="stab-cloud">
+
+        <div class="settings-section">
+          <div class="s-title">Synchronisation GitHub Gist (Privé)</div>
+          <div class="settings-group">
+            <div class="setting-row">
+              <div><div class="setting-lbl">Token GitHub</div><div class="setting-sub">Personal Access Token (ghp_…)</div></div>
+              <input type="password" id="gh-token" onchange="saveAppConfig()" placeholder="ghp_..." style="width:120px;text-align:right;background:none;border:none;color:var(--txt);font-size:13px;outline:none">
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-lbl">Gist ID</div><div class="setting-sub">ID du Gist privé (32 car.)</div></div>
+              <input type="text" id="gist-id" onchange="saveAppConfig()" placeholder="abc123…" style="width:120px;text-align:right;background:none;border:none;color:var(--txt);font-size:13px;outline:none">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="s-title">Actions</div>
+          <div class="settings-group">
+            <div class="setting-row" style="cursor:pointer" onclick="softSync()">
+              <div><div class="setting-lbl">Synchroniser</div><div class="setting-sub">Upload + Download — fusion intelligente</div></div>
+              <svg width="16" height="16" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="forceSync()">
+              <div><div class="setting-lbl">Forcer l'upload</div><div class="setting-sub">Écrase le cloud avec le local</div></div>
+              <svg width="16" height="16" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="setting-row" style="cursor:pointer" onclick="pullFromCloud()">
+              <div><div class="setting-lbl">Récupérer depuis le cloud</div><div class="setting-sub">Remplace le local par la version cloud</div></div>
+              <svg width="16" height="16" fill="none" stroke="var(--txt3)" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+          </div>
+          <div style="padding:10px 4px 0;display:flex;align-items:center;gap:8px">
+            <span id="sync-pill"><span class="sync-dot"></span><span id="sync-pill-txt">—</span></span>
+            <span id="sync-last" style="font-size:11px;color:var(--txt3)"></span>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-group" style="padding:12px 16px">
+            <div style="font-size:12px;color:var(--txt3);line-height:1.6">
+              💡 <strong style="color:var(--txt2)">Comment configurer :</strong><br>
+              1. Créez un Gist privé sur GitHub<br>
+              2. Générez un token avec scope <code style="color:var(--c1);font-size:11px">gist</code><br>
+              3. Entrez le token et l'ID ci-dessus
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px"></div>
+
+      </div><!-- end stab-cloud -->
+
+    </div><!-- end page-settings -->
+  </div><!-- end page-content -->
+
+  <!-- NAV BAR -->
+  <nav id="nav-bar">
+    <button class="nav-item active" id="nav-home" onclick="navTo('home')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      Collection
+    </button>
+    <button class="nav-item" id="nav-taxes" onclick="navTo('taxes')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 16v-8"/><path d="M8 12h8"/></svg>
+      Taxes
+    </button>
+    <div class="nav-fab">
+      <button class="fab-btn" onclick="openAdd()">
+        <svg width="22" height="22" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <span class="fab-label">Ajouter</span>
+    </div>
+    <button class="nav-item" id="nav-settings" onclick="navTo('settings')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Paramètres
+    </button>
+  </nav>
+</div>
+
+<!-- ====== TOAST ====== -->
+<div id="toast"></div>
+
+<!-- ====== MODAL: DÉTAIL ITEM ====== -->
+<div class="modal-bg" id="modal-detail" onclick="bgClose(event,'modal-detail')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detail-title" style="display:flex;align-items:center;justify-content:space-between;padding-right:20px">
+      <span id="detail-title-txt">Détail</span>
+      <div style="display:flex;gap:8px">
+        <button id="detail-edit-btn" class="act-btn" style="width:36px;height:36px" title="Modifier"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button id="detail-del-btn" class="act-btn del" style="width:36px;height:36px" title="Supprimer"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-scroll">
+      <div class="modal-body" id="detail-body">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL: AJOUT / MODIFICATION ====== -->
+<div class="modal-bg" id="modal-form" onclick="bgClose(event,'modal-form')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="form-title">Ajouter un objet</div>
+    <div class="modal-scroll">
+      <div class="modal-body">
+
+        <div>
+          <div class="field-lbl">Informations</div>
+          <div class="field-group">
+            <div class="field-row">
+              <label>Nom</label>
+              <input type="text" id="f-name" placeholder="Nom de l'objet">
+            </div>
+            <div class="field-row">
+              <label>Catégorie</label>
+              <input type="text" id="f-cat" placeholder="Figurine, carte…">
+            </div>
+            <div class="field-row">
+              <label>Image (URL)</label>
+              <input type="url" id="f-img" placeholder="https://…" inputmode="url">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-lbl">Achat</div>
+          <div class="field-group">
+            <div class="field-row">
+              <label>Devise</label>
+              <div style="flex:1;display:flex;justify-content:flex-end;gap:16px">
+                <label style="width:auto;display:flex;align-items:center;gap:5px;color:var(--txt);font-size:13px;cursor:pointer"><input type="radio" name="currency" value="JPY" checked onchange="toggleCur()">Yen ¥</label>
+                <label style="width:auto;display:flex;align-items:center;gap:5px;color:var(--txt);font-size:13px;cursor:pointer"><input type="radio" name="currency" value="EUR" onchange="toggleCur()">Euro €</label>
+              </div>
+            </div>
+            <div class="field-row">
+              <label>Prix d'achat</label>
+              <input type="number" id="f-buy-price" placeholder="En Yens (¥)" step="1" inputmode="decimal" min="0">
+            </div>
+            <div class="field-row">
+              <label>Livraison (€)</label>
+              <input type="number" id="f-shipping" placeholder="0" step="0.01" inputmode="decimal" min="0">
+            </div>
+            <div class="field-row">
+              <label>Douane (€)</label>
+              <input type="number" id="f-taxes" placeholder="0" step="0.01" inputmode="decimal" min="0">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-lbl">Revente estimée</div>
+          <div class="field-group">
+            <div class="field-row">
+              <label>Europe (€)</label>
+              <input type="number" id="f-sell-eur" placeholder="0" step="0.01" inputmode="decimal" min="0">
+            </div>
+            <div class="field-row">
+              <label>Japon (¥)</label>
+              <input type="number" id="f-sell-jpy" placeholder="0" step="1" inputmode="decimal" min="0">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-lbl">Notes</div>
+          <div class="field-group">
+            <div class="field-row notes-row">
+              <textarea id="f-notes" rows="3" placeholder="Notes libres…" style="width:100%"></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeModal('modal-form')">Annuler</button>
+        <button class="btn-primary" onclick="submitForm()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
